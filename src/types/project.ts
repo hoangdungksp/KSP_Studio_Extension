@@ -301,6 +301,23 @@ export interface Beat {
   detectedAt: number;
 }
 
+/** r8.0: target video models for per-beat prompts. */
+export type VideoPromptModel = "omni" | "seedance" | "grok";
+
+/** r8.0: one video clip = 1+ scene beats merged, with a prompt per model. */
+export interface BeatPromptGroup {
+  id: string;
+  /** Scene beat ids in this clip (ordered by beat.order). */
+  beatIds: string[];
+  /** Generated (or user-edited) prompt per model. */
+  prompts: Partial<Record<VideoPromptModel, string>>;
+  /** Models whose prompt the user edited by hand — confirm before AI overwrites. */
+  editedModels?: VideoPromptModel[];
+  /** Fingerprint of beats + covered shots at generation time (stale detection). */
+  sourceFingerprint?: string;
+  generatedAt?: number;
+}
+
 export const BEAT_TYPE_LABELS: Record<Beat["type"], { vi: string; emoji: string; color: string }> = {
   camera:         { vi: "Máy quay",   emoji: "🎥", color: "#534AB7" },
   subject:        { vi: "Chủ thể",    emoji: "👤", color: "#D85A30" },
@@ -380,6 +397,14 @@ export interface FilmSceneScript {
    * UI: badge `🎯 N beats` on Scene Card with click-to-popover; Coverage indicator in Shot List.
    */
   beats?: Beat[];
+
+  /**
+   * r8.0: per-beat video prompts (Omni Flash / Seedance 2.5 / Grok Imagine).
+   * A group holds 1+ beats of this scene merged into one clip. Beat → shots is
+   * resolved live from `shot.coveredBeatIds`; `sourceFingerprint` detects when
+   * shots/beats changed after generation (prompt shown as stale).
+   */
+  beatPrompts?: BeatPromptGroup[];
 
   /**
    * Sprint 1.0 r7: AI-detected PHYSICAL CONSISTENCY LOCK in English.
@@ -862,6 +887,11 @@ export interface ProjectSettingV2 {
    * Only meaningful when mode === "film". Other modes ignore.
    */
   dialog?: import("./film").FilmDialogMode;
+  /**
+   * r8.1: language characters SPEAK in video prompts (prompt prose stays English).
+   * "en" (default) uses ScriptDialog.lineEn, "vi" uses lineVi (falls back to lineEn).
+   */
+  dialogueLanguage?: "en" | "vi";
 
   /**
    * /Default video generation provider for Film mode.

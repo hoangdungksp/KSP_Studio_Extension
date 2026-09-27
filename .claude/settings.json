@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/auto-build.sh",
+            "timeout": 180,
+            "statusMessage": "Đang build KSP Studio..."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run build)",
+      "Bash(npm run build:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npm install)"
+    ]
+  }
+}

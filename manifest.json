@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "KSP Image",
-  "version": "0.9.4.56",
-  "version_name": "0.9.4-r7.38-copy-prompts-refs-move",
-  "description": "AI-powered prompt assembler for cinema (TVC, Photos, Product, Film) — Banana Pro, Imagen 4, Seedance, Veo3.",
+  "version": "0.9.4.58",
+  "version_name": "0.9.4-r8.1-idea-only-film",
+  "description": "AI film pre-production: script → shot list → per-beat video prompts for Gemini Omni Flash, Seedance 2.5, Grok Imagine. Plus Photos mode for Banana Pro.",
   "permissions": ["storage", "sidePanel", "contextMenus", "downloads", "notifications", "tabs", "activeTab", "scripting"],
   "host_permissions": [
     "<all_urls>",
@@ -16,7 +16,7 @@
     "http://*/*"
   ],
   "action": {
-    "default_title": "KSP Image v0.9.4-r7.38-copy-prompts-refs-move — Open Editor"
+    "default_title": "KSP Image v0.9.4-r8.1-idea-only-film — Open Editor"
   },
   "side_panel": {
     "default_path": "src/sidepanel.html"

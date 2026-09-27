@@ -1,4 +1,5 @@
 /**
+ * r8.0: HIDDEN — no longer rendered in Editor (pipeline ends at Shot List). Kept for possible revival.
  * KSP Image Film Storyboard Section (visual grid rewrite)
  *
  * Paradigm shift from replaced shot list (text rows) with VISUAL GRIDS.
@@ -47,7 +48,6 @@ import { buildGridTemplateImage } from "../engine/gridTemplateImage";
 import { GridCropPreviewModal } from "./GridCropPreviewModal";
 import { FilmFrameEditModal } from "./FilmFrameEditModal";
 import { FilmAnimaticPlayerModal } from "./FilmAnimaticPlayerModal";
-import { AutoChainRetryBanner } from "./AutoChainRetryBanner";
 
 const GRID_FORMAT_OPTIONS: { value: SceneGridFormat; label: string; cells: number }[] = [
   { value: "2x2", label: "2×2", cells: 4 },
@@ -92,11 +92,10 @@ export function FilmStoryboardSection() {
   );
   const totalGrids = scenes.reduce((acc, s) => acc + (s.grids?.length ?? 0), 0);
 
-  // Storyboard section animates ONLY on grid-build (~250ms total).
-  // analyze-scenes + shot-list moved to Shot List section animation per Jason's chốt.
-  const storyboardStatuses: string[] = [
-    autoChainState.sections["grid-build"]?.status,
-  ].filter(Boolean) as string[];
+  // r8.0: section HIDDEN (not rendered in Editor) and grid-build stage removed
+  // from auto-chain — storyboard no longer animates on auto-chain progress.
+  const storyboardStatuses: string[] = [];
+  void autoChainState;
   const isStoryboardGenerating = storyboardStatuses.includes("generating");
   const storyboardHasError = storyboardStatuses.includes("error");
   const sectionClass = isStoryboardGenerating
@@ -116,11 +115,6 @@ export function FilmStoryboardSection() {
         </span>
       </header>
 
-      {/* r7.29 Feature 1A: Retry button when grid-build errors */}
-      <AutoChainRetryBanner
-        sectionIds={["grid-build"]}
-        sectionLabel="Storyboard (Grid Build)"
-      />
 
       {scenes.length === 0 && (
         <div className="ksp-storyboard-empty">

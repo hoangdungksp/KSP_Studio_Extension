@@ -135,12 +135,12 @@ describe("Sprint r7.15a — Stage 3 (Twists) wires narrativeDirection with locke
 // ============================================================================
 
 describe("Sprint r7.15a — autoChainOrchestrator initial state", () => {
-  it("createInitialAutoChainState returns 8 sections all idle", () => {
+  it("createInitialAutoChainState returns 7 sections all idle (r8.0: grid-build removed)", () => {
     const state = createInitialAutoChainState();
     const sectionIds: SectionId[] = [
       "script-stage-1", "script-stage-2", "script-stage-3",
       "script-stage-4", "script-stage-5",
-      "analyze-scenes", "shot-list", "grid-build",
+      "analyze-scenes", "shot-list",
     ];
     for (const id of sectionIds) {
       expect(state.sections[id]).toBeDefined();
@@ -212,9 +212,10 @@ describe("Sprint r7.15a — autoChainOrchestrator subscription model", () => {
 });
 
 describe("Sprint r7.15a — SectionId enum coverage", () => {
-  it("All 8 sections present in initial state", () => {
+  it("All 8 sections present in initial state (r8.0: grid-build removed, r8.1: + characters)", () => {
     const state = createInitialAutoChainState();
     expect(Object.keys(state.sections).length).toBe(8);
+    expect(Object.keys(state.sections).indexOf("characters")).toBe(Object.keys(state.sections).indexOf("script-stage-4") + 1);
   });
 
   it("Section ordering: script stages 1-5 then per-scene loops", () => {
@@ -224,7 +225,7 @@ describe("Sprint r7.15a — SectionId enum coverage", () => {
     expect(keys).toContain("script-stage-5");
     expect(keys).toContain("analyze-scenes");
     expect(keys).toContain("shot-list");
-    expect(keys).toContain("grid-build");
+    expect(keys).not.toContain("grid-build");
   });
 });
 

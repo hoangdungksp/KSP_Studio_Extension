@@ -78,7 +78,7 @@ const SHOT_TYPE_PROSE: Record<string, string> = {
   cowboy: "cowboy shot",
 };
 
-function getShotTypeProse(shotType: string): string {
+export function getShotTypeProse(shotType: string): string {
   return SHOT_TYPE_PROSE[shotType] ?? shotType.replace(/_/g, " ");
 }
 
@@ -183,7 +183,7 @@ const STYLE_ADJ: Record<string, string> = {
   documentary: "documentary photorealistic",
 };
 
-function getStyleAdjective(style?: string): string {
+export function getStyleAdjective(style?: string): string {
   if (!style) return "cinematic";
   return STYLE_ADJ[style] ?? style.replace(/_/g, " ");
 }

@@ -68,7 +68,7 @@ export function App() {
           </div>
           <div>
             <h1 className="text-base font-bold leading-tight">KSP Image</h1>
-            <div className="text-[10px] text-ksp-muted leading-tight">v0.9.1 · Multi-mode AI cinema</div>
+            <div className="text-[10px] text-ksp-muted leading-tight">v0.9.4-r8.1 · Film + Photos</div>
           </div>
         </div>
       </header>

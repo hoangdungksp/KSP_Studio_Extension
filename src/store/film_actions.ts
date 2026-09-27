@@ -52,6 +52,15 @@ export function addCharacter(
   return patch(next);
 }
 
+/** r8.1: replace the whole cast (AI character bible). */
+export function setCharacters(
+  project: PromptProject,
+  characters: FilmCharacter[]
+): Partial<ProjWithFilm> {
+  const data = ensureFilmData(project);
+  return patch({ ...data, characters, selectedCharacterId: characters[0]?.id });
+}
+
 export function updateCharacter(
   project: PromptProject,
   characterId: string,
@@ -347,6 +356,61 @@ export function updateSceneInScript(
         s.id === sceneId ? { ...s, ...updates } : s
       ),
     },
+  });
+}
+
+/**
+ * r8.0: save a per-beat video prompt group on a scene.
+ * Any existing group sharing a beat with the new one is dropped (a beat belongs
+ * to exactly one clip — merging beats 1+2 replaces the single-beat prompts).
+ */
+export function upsertBeatPromptGroup(
+  project: PromptProject,
+  sceneId: string,
+  group: import("../types/project").BeatPromptGroup
+): Partial<ProjWithFilm> {
+  const scene = ensureFilmData(project).script?.scenes.find((s) => s.id === sceneId);
+  if (!scene) return {};
+  const beats = new Set(group.beatIds);
+  const others = (scene.beatPrompts ?? []).filter(
+    (g) => g.id !== group.id && !g.beatIds.some((id) => beats.has(id))
+  );
+  return updateSceneInScript(project, sceneId, { beatPrompts: [...others, group] });
+}
+
+/** r8.0: user hand-edits one model's prompt text. */
+export function editBeatPromptText(
+  project: PromptProject,
+  sceneId: string,
+  groupId: string,
+  model: import("../types/project").VideoPromptModel,
+  text: string
+): Partial<ProjWithFilm> {
+  const scene = ensureFilmData(project).script?.scenes.find((s) => s.id === sceneId);
+  if (!scene) return {};
+  return updateSceneInScript(project, sceneId, {
+    beatPrompts: (scene.beatPrompts ?? []).map((g) =>
+      g.id !== groupId
+        ? g
+        : {
+            ...g,
+            prompts: { ...g.prompts, [model]: text },
+            editedModels: Array.from(new Set([...(g.editedModels ?? []), model])),
+          }
+    ),
+  });
+}
+
+/** r8.0: split a merged clip back into single beats (drops its prompts). */
+export function removeBeatPromptGroup(
+  project: PromptProject,
+  sceneId: string,
+  groupId: string
+): Partial<ProjWithFilm> {
+  const scene = ensureFilmData(project).script?.scenes.find((s) => s.id === sceneId);
+  if (!scene) return {};
+  return updateSceneInScript(project, sceneId, {
+    beatPrompts: (scene.beatPrompts ?? []).filter((g) => g.id !== groupId),
   });
 }
 

@@ -2,6 +2,36 @@
 
 > Older entries (pre-r7.15) archived in `CHANGELOG_ARCHIVE.md`. Only last ~10 sprints kept here for active reference.
 
+## [0.9.4-r8.1-idea-only-film] — 2026-09-26 — Sprint r8.1: Film chỉ cần Idea
+
+### Added
+- Auto-chain stage `characters` (AI character bible) + `src/engine/characterBible.ts`, `setCharacters` action, `CharacterBibleBlock` ở đầu Shot List.
+- Setting `dialogueLanguage` (English / Tiếng Việt) cho lời thoại trong video prompt.
+- Beat prompt: chép nguyên văn mô tả nhân vật để đồng nhất giữa các clip.
+
+### Removed
+- Cast section trong Film mode + guard "phải add character".
+
+---
+
+## [0.9.4-r8.0-beat-video-prompts] — 2026-09-25 — Sprint r8.0: đơn giản hoá + video prompt theo beat
+
+### Added
+- Panel "🎬 BEATS → VIDEO PROMPT" trong mỗi scene của Shot List: prompt riêng cho Gemini Omni Flash, Seedance 2.5, Grok Imagine; ghép nhiều beat liền nhau thành 1 clip; sửa tay, copy, tải ảnh ref.
+- `src/engine/beatVideoPrompt.ts` + `test/beat_video_prompt.test.tsx` (23 tests).
+- `FilmSceneScript.beatPrompts`, store actions `upsertBeatPromptGroup` / `editBeatPromptText` / `removeBeatPromptGroup`.
+
+### Removed
+- Storyboard ẩn khỏi Editor; auto-chain không còn stage grid-build (dừng ở Shot List).
+- Voice, Music+SFX, Bundle Export (component + exporter + tests).
+- TVC / Product: placeholder + các field Project Setting riêng (Industry, Concept Writer), Storyboard frames provider, Voice TTS, key ElevenLabs / Google TTS / Suno.
+
+### Notes
+- Version theo quy ước cũ: 0.9.4.57 / 0.9.4-r8.0 (test pin 0.9.4-r*).
+- Sprint r7.35–r7.38 (Omni provider, ESC đóng Preview, banner abort mới, di chuyển nút Refs) đã có trong code từ commit 1b193a9 nhưng chưa ghi changelog.
+
+---
+
 ## [0.9.4-r7.34-omni-ab-test] — 2026-05-21 — Sprint r7.34: Omni A/B prompt comparison feature
 
 ### Goal

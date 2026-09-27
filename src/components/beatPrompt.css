@@ -1,0 +1,210 @@
+/* r8.0 — Beats → Video Prompt panel (Shot List scene card) */
+
+.ksp-beatprompt {
+  margin-top: 12px;
+  padding: 10px;
+  border: 0.5px solid #2a2a2a;
+  border-left: 2px solid #D85A30;
+  border-radius: 0 4px 4px 0;
+  background: rgba(216, 90, 48, 0.04);
+}
+
+.ksp-beatprompt-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #f0a677;
+}
+
+.ksp-beatprompt-hint,
+.ksp-beatprompt-empty {
+  font-size: 11px;
+  color: #888;
+  line-height: 1.5;
+  margin: 4px 0 8px;
+}
+
+.ksp-beatprompt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ksp-beatprompt-unit {
+  border-bottom: 0.5px solid #1f1f1f;
+  padding: 6px 0;
+}
+
+.ksp-beatprompt-unit.merged {
+  background: rgba(216, 90, 48, 0.06);
+  border-radius: 4px;
+  padding: 6px 4px;
+}
+
+.ksp-beatprompt-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.ksp-beatprompt-row input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: #D85A30;
+}
+
+.ksp-beatprompt-label {
+  font-size: 12px;
+  color: #ddd;
+  line-height: 1.45;
+  min-width: 0;
+}
+
+.ksp-beatprompt-meta {
+  font-size: 10px;
+  color: #888;
+}
+
+.ksp-beatprompt-stale {
+  color: #e8a55e;
+}
+
+.ksp-beatprompt-toggle {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 0.5px dashed #4c4c4c;
+  color: #aaa;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ksp-beatprompt-toggle.has {
+  border-style: solid;
+  border-color: #D85A30;
+  color: #f0a677;
+}
+
+.ksp-beatprompt-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ksp-beatprompt-editor {
+  margin: 8px 0 4px 24px;
+}
+
+.ksp-beatprompt-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.ksp-beatprompt-tab {
+  flex: 1;
+  font-size: 11px;
+  padding: 5px 4px;
+  background: #1a1a1a;
+  border: 0.5px solid #333;
+  color: #aaa;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ksp-beatprompt-tab.active {
+  border-color: #D85A30;
+  color: #fff;
+  background: rgba(216, 90, 48, 0.15);
+}
+
+.ksp-beatprompt-fit {
+  font-size: 10px;
+  padding: 0 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+.ksp-beatprompt-fit.ok { color: #9bd07a; }
+.ksp-beatprompt-fit.warn { color: #e8a55e; }
+.ksp-beatprompt-fit.bad { color: #f07d6e; }
+
+.ksp-beatprompt-warn {
+  font-size: 11px;
+  color: #e8a55e;
+  margin: 4px 0;
+  line-height: 1.45;
+}
+
+.ksp-beatprompt-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 11px;
+  line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #e6e6e6;
+  background: #111;
+  border: 0.5px solid #333;
+  border-radius: 4px;
+  padding: 8px;
+  resize: vertical;
+}
+
+.ksp-beatprompt-textarea:focus {
+  outline: none;
+  border-color: #D85A30;
+}
+
+.ksp-beatprompt-refs {
+  font-size: 10px;
+  color: #888;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.ksp-beatprompt-actions,
+.ksp-beatprompt-selactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ksp-beatprompt-selbar {
+  position: sticky;
+  bottom: 0;
+  margin-top: 8px;
+  padding: 8px;
+  background: #1c1512;
+  border: 0.5px solid #D85A30;
+  border-radius: 4px;
+}
+
+.ksp-beatprompt-selinfo {
+  font-size: 11px;
+  color: #ddd;
+}
+
+.ksp-beatprompt-fits {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 6px;
+}
+
+/* r8.1 — character bible block */
+.ksp-charbible { margin: 8px 12px; }
+
+.ksp-charbible-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.ksp-charbible-item { margin-top: 8px; }
+.ksp-charbible-item .ksp-beatprompt-textarea { margin-top: 4px; font-family: inherit; }

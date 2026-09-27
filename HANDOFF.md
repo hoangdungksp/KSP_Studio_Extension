@@ -1,12 +1,47 @@
 # KSP Image Chrome Extension — Handoff Document
 
-## Status: `v0.9.4-r7.34-omni-ab-test` shipped
+## Status: `v0.9.4-r8.1-idea-only-film` (build + tests pass, chưa test tay trên Chrome)
 
-**Last updated:** Thursday, May 21, 2026 (Sprint r7.34 ship — A/B prompt comparison feature)
+**Last updated:** 2026-09-26 (Sprint r8.1 — bỏ Cast ở Film, character bible AI, ngôn ngữ thoại)
 
-**Project state:** Film mode 7-step pipeline complete and stable. **A/B prompt comparison feature live: 2 nút Storyboard section (KSP Hybrid + DeepMind Strict) cho phép user test empirically prompt strategy.** Cache persist incremental (r7.33). Banner stuck fix (r7.32-fix). Hardcode-free prompts (r7.31). Scene boundary fix (r7.30). 637/649 tests pass.
+**Project state:** Extension còn 2 mode: **Photos** và **Film**. Film chỉ cần **Idea** (không còn Cast). Film pipeline dừng ở **Shot List**: Idea → Script (stage 1-4 → **characters** → stage 5) → Pacing → Shot List → **video prompt theo beat** (Gemini Omni Flash / Seedance 2.5 / Grok Imagine). Storyboard ẩn (code còn, không render, auto-chain không chạy grid-build). Voice / Music+SFX / Bundle Export đã xoá. TVC + Product đã xoá khỏi UI (project cũ mode đó render như Film).
 
-**Note (May 21, 2026):** KSP Image là dự án **làm phim độc lập**, KHÔNG liên quan kênh YouTube DungThichVar hay project KSP AutoFlow.
+**Note:** KSP Image là dự án **làm phim độc lập**, KHÔNG liên quan kênh YouTube DungThichVar hay project KSP AutoFlow.
+
+**Dev setup (từ 2026-09-25):** source ở `~/Documents/KSP_Studio`, git repo `hoangdungksp/KSP_Studio_Extension` (branch main). Claude tự build/test; Stop hook `scripts/auto-build.sh` build lại `dist/` cuối mỗi lượt. Jason chỉ bấm ↻ ở chrome://extensions. Các mục "Source code locations" / zip / update.sh bên dưới là luồng cũ.
+
+---
+
+## Sprint r8.1 summary (current) — Film chỉ cần Idea
+
+- **Bỏ Cast section ở Film** (Photos vẫn giữ CastPhotosSection). Bỏ 2 guard "phải có character".
+- **Character bible** `src/engine/characterBible.ts`: auto-chain stage mới `"characters"` giữa script-stage-4 và script-stage-5 → 1 AI call rút nhân vật từ idea + scenes, mỗi nhân vật 1 đoạn ngoại hình tiếng Anh cố định (35–60 từ) lưu vào `FilmCharacter.description`. Stage bị skip nếu project đã có nhân vật (project cũ dùng Cast). Luồng wizard thủ công Stage 5 cũng tự tạo bible nếu thiếu.
+- Beat prompt chép **nguyên văn** mô tả nhân vật vào mọi clip → nhân vật đồng nhất giữa các clip.
+- `CharacterBibleBlock` ở đầu Shot List: xem/sửa mô tả (sửa xong phải Generate lại prompt — fingerprint không tính mô tả nhân vật).
+- **Ngôn ngữ thoại**: `settingV2.dialogueLanguage` ("en" mặc định | "vi"), Project Setting hiện khi Dialog = Có thoại. Prompt vẫn viết tiếng Anh, chỉ câu thoại dùng lineVi, và prompt nêu "dialogue spoken in <language>".
+- Không còn ảnh concept sheet cho project mới → prompt không có ảnh ref (Grok được 15s). Project cũ có conceptSheet vẫn dùng.
+
+---
+
+## Sprint r8.0 summary (previous) — Beats → Video Prompt
+
+**Ý tưởng:** mỗi *scene beat* (beat nhỏ trong scene, nút 🎯 View beats) có prompt video để copy. Beat ngắn (2-3s) → tick nhiều beat liền nhau → "Ghép & Generate" thành 1 clip.
+
+**Engine `src/engine/beatVideoPrompt.ts`:**
+- Beat → shots lấy live từ `shot.coveredBeatIds` (dedupe shot phủ 2 beat).
+- Timeline giây nguyên liên tục tính bằng code, fit theo từng model trong `VIDEO_MODEL_SPECS` (một chỗ duy nhất): Omni 3–10s (`image_0`), Seedance 4–30s (`Image 1`), Grok ≤15s / ≤10s khi có ảnh ref (`reference image 1`). Vượt → nén, thiếu → giãn, quá nhiều shot → gộp.
+- Thoại: dùng `dialog.timingSeconds` nếu mọi câu có timing, không thì đưa cả scene cho AI lọc. Tắt khi setting dialog = no_dialog.
+- Ảnh ref: nhân vật có tên trong shot (fallback protagonist) và có conceptSheet → đánh số theo thứ tự, nút ⬇ Refs tải ZIP đúng thứ tự.
+- 1 AI call (`callAi`, provider = scriptWriter) → JSON `{omni, seedance, grok}`. System prompt `BEAT_VIDEO_SYSTEM_PROMPT` chỉ dùng `<placeholder>`.
+- `sourceFingerprint` → prompt hiện "⚠ shot đã đổi" khi shot list / beat thay đổi.
+
+**Data:** `FilmSceneScript.beatPrompts?: BeatPromptGroup[]` (`beatIds`, `prompts`, `editedModels`, `sourceFingerprint`). Ghép beat → xoá group cũ chồng beat. Sửa tay → `editedModels`, Generate lại hỏi xác nhận.
+
+**UI `src/components/BeatPromptPanel.tsx`** (trong mỗi scene card của Shot List, dưới bảng shot): checkbox từng beat, thanh ghép hiện tổng giây + độ vừa từng model, 3 tab prompt, textarea sửa được, Copy / Generate lại / ⬇ Refs / ✂ Tách.
+
+**Removals:** grid-build khỏi auto-chain (`AUTO_CHAIN_SECTION_ORDER`), abort record cũ "grid-build" bị banner bỏ qua (`isKnownSectionId`). Xoá FilmVoiceSection / FilmMusicSfxSection / FilmBundleExportSection / filmBundleExporter + test của chúng. Project Setting bỏ Industry, Concept Writer, Storyboard frames, Voice TTS, key ElevenLabs/Google TTS/Suno.
+
+**Chưa làm / cần Jason test:** chất lượng prompt thật từ AI (key nằm trong extension, CLI không gọi được); thông số model lấy từ guide bên thứ ba 09/2026 — sai thì sửa `VIDEO_MODEL_SPECS`. Ghép beat chỉ trong 1 scene.
 
 ---
 
@@ -572,7 +607,8 @@ Each value tagged with `veo3Compatible: boolean`, `omniCompatible: boolean`, cat
 
 ## Source code locations
 
-- **Source**: `/Users/jasonnguyen/Downloads/ksp-image-ext/` (moved from `~/Documents/` in earlier sprint)
+- **Source (r8.0+)**: `~/Documents/KSP_Studio` — git `hoangdungksp/KSP_Studio_Extension`
+- **Source (old)**: `/Users/jasonnguyen/Downloads/ksp-image-ext/`
 - **Distribution zips**: `~/Downloads/ksp-image-ext-v*.zip`
 - **GitHub**: https://github.com/hoangdungksp/KSP_Image_Prompt (private)
 - **Update cmd**: `bash ~/Downloads/ksp-image-ext/update.sh` (rsync --delete — ship FULL zip only, never patch)

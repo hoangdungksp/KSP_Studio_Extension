@@ -23,7 +23,7 @@
  * Scope of tracking:
  *   - Per pipeline run. A "pipeline run" begins when the user clicks
  *     "Analyze Idea" (handleOpenPreviewFlow) and ends when auto-chain reaches
- *     the Storyboard grid-build stage.
+ *     the Shot List stage (last stage since r8.0).
  *   - Each new run RESETS the cost. Regen calls after a completed run
  *     continue to accumulate into the last run's total.
  *   - Future expansion (Voice + Music + SFX stages) plugs in by emitting

@@ -22,13 +22,9 @@ import type {
   TimeFormat,
 } from "../types/project";
 
-// v0.9.3-r1: TVC Commercial + Product Photo HIDDEN from Mode dropdown.
-// Code giữ trong codebase (gác lại post-v1.0). User chỉ thấy Photos + Film.
-// To re-enable later: uncomment 2 entries below.
+// r8.0: TVC Commercial + Product Photo removed. Only Photos + Film.
 const MODES: { value: ProjectModeV2; label: string; emoji: string; desc: string }[] = [
   { value: "photos", label: "Photos", emoji: "📷", desc: "Single image generation, 18+ themes, Camera Style" },
-  // { value: "tvc_commercial", label: "TVC Commercial", emoji: "🎬", desc: "Branded ads với Concept + Storyboard pipeline" },
-  // { value: "product_photo", label: "Product Photo", emoji: "📦", desc: "Product-only, lighting setup" },
   { value: "film", label: "Film / Short Film", emoji: "🎞", desc: "Multi-character narrative với Script + Scenes" },
 ];
 
@@ -135,7 +131,6 @@ export function ProjectSettingSection() {
   }
 
   const isFilm = setting.mode === "film";
-  const isTvcOrProduct = setting.mode === "tvc_commercial" || setting.mode === "product_photo";
 
   return (
     <section className="ksp-section ksp-project-setting" data-mode={setting.mode}>
@@ -192,22 +187,6 @@ export function ProjectSettingSection() {
             </Label>
           )}
 
-          {isTvcOrProduct && (
-            <Label text="Industry">
-              <select
-                value={setting.industry ?? "general"}
-                onChange={(e) => patchSetting({ industry: e.target.value })}
-                className="ksp-select"
-              >
-                <option value="skincare">💄 Skincare</option>
-                <option value="fnb">🍔 F&amp;B</option>
-                <option value="tech">💻 Tech</option>
-                <option value="fashion">👗 Fashion</option>
-                <option value="travel">✈️ Travel</option>
-                <option value="general">📦 General</option>
-              </select>
-            </Label>
-          )}
         </div>
 
         {/* v0.9.3-r2: Animation Style + Dialog cùng row (sidebar 380px fit) */}
@@ -235,8 +214,24 @@ export function ProjectSettingSection() {
                 onChange={(e) => patchSetting({ dialog: e.target.value } as any)}
                 className="ksp-select"
               >
-                <option value="no_dialog">🔇 Không thoại (skip Voice + Music + SFX)</option>
-                <option value="has_dialog">💬 Có thoại (full pipeline)</option>
+                <option value="no_dialog">🔇 Không thoại</option>
+                <option value="has_dialog">💬 Có thoại (lời thoại vào video prompt)</option>
+              </select>
+            </Label>
+          </div>
+        )}
+
+        {/* r8.1: spoken language in video prompts (prompt prose stays English) */}
+        {isFilm && setting.dialog === "has_dialog" && (
+          <div className="ksp-form-row">
+            <Label text="Ngôn ngữ thoại trong video">
+              <select
+                value={setting.dialogueLanguage ?? "en"}
+                onChange={(e) => patchSetting({ dialogueLanguage: e.target.value } as any)}
+                className="ksp-select"
+              >
+                <option value="en">🇬🇧 English</option>
+                <option value="vi">🇻🇳 Tiếng Việt</option>
               </select>
             </Label>
           </div>
@@ -276,7 +271,7 @@ export function ProjectSettingSection() {
             </select>
           </Label>
 
-          {(isFilm || isTvcOrProduct) && (
+          {isFilm && (
             <Label text="Duration (phút)">
               <input
                 type="number"
@@ -364,32 +359,11 @@ export function ProjectSettingSection() {
             value={apiKeys.openai ?? ""}
             onChange={(v) => setApiKey("openai", v)}
           />
-          <ApiKeyInput
-            provider="elevenlabs"
-            label="ElevenLabs (Voice TTS, recommend VN)"
-            status={apiKeysStatus.elevenlabs}
-            value={apiKeys.elevenlabs ?? ""}
-            onChange={(v) => setApiKey("elevenlabs", v)}
-          />
-          <ApiKeyInput
-            provider="googleTts"
-            label="Google Cloud TTS (cheaper alternative)"
-            status={apiKeysStatus.googleTts}
-            value={apiKeys.googleTts ?? ""}
-            onChange={(v) => setApiKey("googleTts", v)}
-          />
-          <ApiKeyInput
-            provider="suno"
-            label="Suno (Music — optional)"
-            status={apiKeysStatus.suno}
-            value={apiKeys.suno ?? ""}
-            onChange={(v) => setApiKey("suno", v)}
-          />
         </div>
 
         <div className="ksp-info-banner">
           🔒 Keys lưu local IndexedDB (obfuscated), không gửi lên server.
-          Không có key → fallback prompt-copy mode (manual qua Banana Pro / Suno).
+          Cần ít nhất 1 key (Gemini hoặc OpenAI) để AI viết kịch bản, shot list và video prompt.
         </div>
       </CollapsibleBlock>
 
@@ -419,44 +393,7 @@ export function ProjectSettingSection() {
             </Label>
           )}
 
-          {/* Concept Writer — only for TVC */}
-          {setting.mode === "tvc_commercial" && (
-            <Label text="Concept Writer (TVC)">
-              <select
-                value={setting.aiProviders.conceptWriter}
-                onChange={(e) =>
-                  patchSetting({
-                    aiProviders: { ...setting.aiProviders, conceptWriter: e.target.value as any },
-                  })
-                }
-                className="ksp-select"
-              >
-                <option value="gemini-flash">Gemini Flash</option>
-                <option value="gemini-pro">Gemini Pro</option>
-                <option value="openai-4o">ChatGPT 4o</option>
-              </select>
-            </Label>
-          )}
-
-          {/* Storyboard frames — Film + TVC */}
-          {(isFilm || setting.mode === "tvc_commercial") && (
-            <Label text="Storyboard frames">
-              <select
-                value={setting.aiProviders.storyboardFrames}
-                onChange={(e) =>
-                  patchSetting({
-                    aiProviders: { ...setting.aiProviders, storyboardFrames: e.target.value as any },
-                  })
-                }
-                className="ksp-select"
-              >
-                <option value="gemini-flash">Gemini Flash</option>
-                <option value="openai-4o">ChatGPT 4o</option>
-              </select>
-            </Label>
-          )}
-
-          {/* Image gen — ALL modes (Photos, TVC, Product, Film) */}
+          {/* Image gen — Photos + Film */}
           <Label text="Image gen (face/frame)">
             <select
               value={setting.aiProviders.imageGen}
@@ -474,23 +411,6 @@ export function ProjectSettingSection() {
             </select>
           </Label>
 
-          {/* Voice TTS — Film + TVC (not Photos / Product) */}
-          {(isFilm || setting.mode === "tvc_commercial") && (
-            <Label text="Voice TTS">
-              <select
-                value={setting.aiProviders.voiceTts}
-                onChange={(e) =>
-                  patchSetting({
-                    aiProviders: { ...setting.aiProviders, voiceTts: e.target.value as any },
-                  })
-                }
-                className="ksp-select"
-              >
-                <option value="elevenlabs">ElevenLabs · best VN</option>
-                <option value="google-tts">Google TTS · cheap</option>
-              </select>
-            </Label>
-          )}
         </div>
       </CollapsibleBlock>
 

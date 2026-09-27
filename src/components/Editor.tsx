@@ -6,11 +6,13 @@
  *
  * Layout matches mockups exactly:
  * - Section 1: PROJECT (Project Setting)
- * - Section 2: ASSETS (Cast)
- * - Section 3: PIPELINE (Idea → Concept/Script → Storyboard → Voice → Music → Bundle)
+ * - Section 2: ASSETS (Cast — Photos only; Film uses AI character bible since r8.1)
+ * - Section 3: PIPELINE (Idea → Script → Pacing → Shot List + per-beat video prompts)
  *   with connector lines between steps
  *
- * Mode-adaptive: pipeline blocks differ per mode (Photos vs TVC vs Film).
+ * Mode-adaptive: pipeline blocks differ per mode (Photos vs Film).
+ * r8.0: TVC + Product modes removed; Storyboard / Voice / Music / Bundle hidden —
+ * Film pipeline ends at Shot List (video prompts are copied per beat).
  */
 
 import React from "react";
@@ -21,19 +23,10 @@ import type { ProjectModeV2 } from "../types/project";
 
 // v0.9.0 components (built in Phase 1-4)
 import { ProjectSettingSection } from "./ProjectSettingSection";
-import { CastFilmSection } from "./CastFilmSection";
 import { FilmIdeaScriptSection } from "./FilmIdeaScriptSection";
 import { FilmPacingDashboardSection } from "./FilmPacingDashboardSection";
 import { FilmShotListSection } from "./FilmShotListSection";
-import { FilmStoryboardSection } from "./FilmStoryboardSection";
 import { PipelineResumeBanner } from "./PipelineResumeBanner";
-// ShotDetailPanel deleted r5 (atomic Q6) — replaced by FilmShotDetailPanel inline expand drawer
-// rendered inside FilmStoryboardSection when a shot row is clicked.
-// r6: VoiceSectionV09 / MusicSfxSectionV09 / BundleExportV09 all deleted (atomic Q6),
-// replaced by FilmVoiceSection / FilmMusicSfxSection / FilmBundleExportSection.
-import { FilmVoiceSection } from "./FilmVoiceSection";
-import { FilmMusicSfxSection } from "./FilmMusicSfxSection";
-import { FilmBundleExportSection } from "./FilmBundleExportSection";
 
 // v0.9.1 Photos mode components
 import { CastPhotosSection } from "./CastPhotosSection";
@@ -80,7 +73,9 @@ export function Editor() {
   }
 
   const migrated = migrateProjectToV09(currentProject);
-  const mode = (migrated.settingV2?.mode ?? "photos") as ProjectModeV2;
+  // r8.0: TVC / Product removed — legacy projects saved with those modes render as Film.
+  const rawMode = (migrated.settingV2?.mode ?? "photos") as ProjectModeV2;
+  const mode: "photos" | "film" = rawMode === "photos" ? "photos" : "film";
 
   // r5: Shot detail is now an INLINE EXPAND DRAWER inside FilmStoryboardSection
   // (no longer a modal-style route that replaces the sidebar). The focusedShotId
@@ -88,17 +83,8 @@ export function Editor() {
 
   // Connector colors mode-aware: Cast (purple) → next pipeline section
   // Photos: → CAMERA STYLE (cyan #5ecac8)
-  // TVC: → PRODUCT (warm orange #e8a55e)
   // Film: → IDEA (green #5dcaa5)
-  // Product mode (stub): gray
-  const castToNextColor =
-    mode === "photos"
-      ? "#5ecac8"
-      : mode === "tvc_commercial"
-      ? "#e8a55e"
-      : mode === "product_photo"
-      ? "#888"
-      : "#5dcaa5";
+  const castToNextColor = mode === "photos" ? "#5ecac8" : "#5dcaa5";
 
   return (
     <div
@@ -117,22 +103,21 @@ export function Editor() {
     >
       {/* Section 1: PROJECT */}
       <ProjectSettingSection />
-      <Connector colorFrom="#6da9d6" colorTo="#c490c4" />
+      <Connector colorFrom="#6da9d6" colorTo={mode === "photos" ? "#c490c4" : "#5dcaa5"} />
 
-      {/* Section 2: ASSETS — mode-adaptive
-          Photos + TVC dùng chung CastPhotosSection (5 Subject Types + 1-6 face refs + outfit)
-          Film dùng CastFilmSection v0.9.3 (multi-character cards, 4 roles, face/body refs, AI Generate stub) */}
-      {mode === "photos" || mode === "tvc_commercial" ? (
-        <CastPhotosSection />
-      ) : (
-        <CastFilmSection />
-      )}
-      <Connector colorFrom="#c490c4" colorTo={castToNextColor} />
+      {/* Section 2: ASSETS — Photos only.
+          r8.1: Film has no Cast step — characters come from the AI character bible
+          (auto-chain stage "characters"), shown/edited at the top of Shot List. */}
+      {mode === "photos" ? (
+        <>
+          <CastPhotosSection />
+          <Connector colorFrom="#c490c4" colorTo={castToNextColor} />
+        </>
+      ) : null}
 
       {/* Section 3: PIPELINE — adaptive per mode */}
       {mode === "photos" && <PhotosPipeline />}
       {mode === "film" && <FilmPipeline />}
-      {(mode === "tvc_commercial" || mode === "product_photo") && <ArchivedModePlaceholder mode={mode} />}
     </div>
   );
 }
@@ -141,27 +126,11 @@ export function Editor() {
 // PIPELINE LAYOUTS (per mode)
 // ============================================================================
 
-function ArchivedModePlaceholder({ mode }: { mode: string }) {
-  const label = mode === "tvc_commercial" ? "TVC Commercial" : "Product Photo";
-  return (
-    <div style={{ padding: "12px 16px" }}>
-      <div className="ksp-coming-soon" style={{ background: "#f4f1ec", border: "1px dashed #b8b0a3", borderRadius: 8, padding: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 14, color: "#5f5e5a" }}>📦 {label} Mode — tạm gác lại</h3>
-        <p style={{ fontSize: 12, color: "#888", margin: "8px 0 0", lineHeight: 1.6 }}>
-          Mode này hiện không phát triển trong Sprint 0.9.3 (đang focus Film/Short Film).
-          Vui lòng chuyển Mode = <b>Photos</b> hoặc <b>Film / Short Film</b> ở Project Setting.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function FilmPipeline() {
-  // read settings to conditionally render Pacing Dashboard + Voice/Music/SFX
+  // read settings to conditionally render Pacing Dashboard
   const currentProject = useAppStore((s) => s.currentProject);
   const setting: any = (currentProject as any)?.settingV2;
   const showPacingDashboard = setting?.showPacingDashboard ?? true;
-  const hasDialog = setting?.dialog !== "no_dialog"; // default has_dialog if undefined
 
   return (
     <>
@@ -180,32 +149,11 @@ function FilmPipeline() {
       )}
 
       <FilmShotListSection />
-      <Connector colorFrom="#D4537E" colorTo="#afa9ec" />
-
-      <FilmStoryboardSection />
-
-      {/* r5: Steps 4 (IMAGE GEN) + 5 (VIDEO AI) are now per-shot — accessed by
-          clicking a shot row in Storyboard to expand FilmShotDetailPanel inline.
-          No standalone sections here anymore. */}
-      {/* Voice + Music + SFX hidden when dialog === "no_dialog" */}
-      {hasDialog && (
-        <>
-          <Connector colorFrom="#afa9ec" colorTo="#85b7eb" />
-          <FilmVoiceSection />
-          <Connector colorFrom="#85b7eb" colorTo="#c490c4" />
-
-          <FilmMusicSfxSection />
-          <Connector colorFrom="#c490c4" colorTo="#5dcaa5" />
-        </>
-      )}
-      {!hasDialog && <Connector colorFrom="#afa9ec" colorTo="#5dcaa5" />}
-
-      <FilmBundleExportSection />
     </>
   );
 }
 
-// TvcPipeline + ProductPipeline removed v0.9.3-r1 — see ArchivedModePlaceholder above.
+// TvcPipeline + ProductPipeline removed v0.9.3-r1; mode options removed r8.0.
 
 function PhotosPipeline() {
   return (

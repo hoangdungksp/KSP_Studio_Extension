@@ -590,14 +590,16 @@ describe("Sprint r7.15c — Preview Flow v2", () => {
     expect(src).toContain("updatedTwists");
   });
 
-  it("Editor.tsx conditionally renders Pacing Dashboard + Voice/Music based on settings", async () => {
+  it("Editor.tsx conditionally renders Pacing Dashboard; Storyboard/Voice/Music/Bundle removed (r8.0)", async () => {
     const fs = await import("fs");
     const path = await import("path");
     const src = fs.readFileSync(path.resolve("./src/components/Editor.tsx"), "utf-8");
     expect(src).toContain("showPacingDashboard");
-    expect(src).toContain("hasDialog");
     expect(src).toContain("{showPacingDashboard && (");
-    expect(src).toContain("{hasDialog && (");
+    expect(src).not.toContain("<FilmStoryboardSection");
+    expect(src).not.toContain("<FilmVoiceSection");
+    expect(src).not.toContain("<FilmMusicSfxSection");
+    expect(src).not.toContain("<FilmBundleExportSection");
   });
 
   it("ProjectSettingSection has showPacingDashboard toggle", async () => {
@@ -656,20 +658,6 @@ describe("Sprint r7.15d-fix1 — fix pass on r7.15c", () => {
     expect(src).not.toContain("runDetectBeatsAllScenes");
   });
 
-  it("FilmStoryboardSection animates ONLY on grid-build (not analyze-scenes or shot-list)", async () => {
-    const fs = await import("fs");
-    const path = await import("path");
-    const src = fs.readFileSync(path.resolve("./src/components/FilmStoryboardSection.tsx"), "utf-8");
-    // Should reference grid-build
-    expect(src).toContain('"grid-build"');
-    // Should NOT include analyze-scenes or shot-list in storyboard animation array
-    const storyboardAnimRegion = src.slice(
-      src.indexOf("storyboardStatuses"),
-      src.indexOf("storyboardStatuses") + 500
-    );
-    expect(storyboardAnimRegion).not.toContain("\"analyze-scenes\"");
-    expect(storyboardAnimRegion).not.toContain("\"shot-list\"");
-  });
 
   it("FilmShotListSection subscribes to autoChainState and animates on analyze-scenes OR shot-list", async () => {
     const fs = await import("fs");

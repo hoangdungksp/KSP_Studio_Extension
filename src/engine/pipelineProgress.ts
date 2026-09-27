@@ -13,7 +13,6 @@
  *   - script-stage-5: done if film.script?.scenes.length >= 1
  *   - analyze-scenes: done if all scenes have non-empty beats array
  *   - shot-list: done if all scenes have shots in shotsBySceneId
- *   - grid-build: done if all scenes have sceneGrids[].image populated
  */
 
 import type { PromptProject } from "../types";
@@ -43,11 +42,16 @@ const SECTION_ORDER: Array<{ id: SectionId; label: string }> = [
   { id: "script-stage-2", label: "Stage 2 — Beats" },
   { id: "script-stage-3", label: "Stage 3 — Twists" },
   { id: "script-stage-4", label: "Stage 4 — Scenes" },
+  { id: "characters", label: "Nhân vật (AI tạo)" },
   { id: "script-stage-5", label: "Stage 5 — Dialogues" },
   { id: "analyze-scenes", label: "Analyze Scenes (beats per scene)" },
   { id: "shot-list", label: "Shot List" },
-  { id: "grid-build", label: "Storyboard (Grid Build)" },
 ];
+
+/** Legacy abort records may still point at removed sections (e.g. "grid-build" pre-r8.0). */
+export function isKnownSectionId(id: unknown): id is SectionId {
+  return SECTION_ORDER.some((s) => s.id === id);
+}
 
 /**
  * Derive pipeline progress from project data. Pure function — no side effects.
@@ -102,6 +106,8 @@ function detectStatus(sectionId: SectionId, film: any): SectionStatus {
         film.scriptIntermediateScenes.length > 0
         ? "done"
         : "missing";
+    case "characters":
+      return (film.characters ?? []).some((c: any) => c.name && c.description) ? "done" : "missing";
     case "script-stage-5":
       return film.script?.scenes && film.script.scenes.length > 0 ? "done" : "missing";
     case "analyze-scenes": {
@@ -121,19 +127,6 @@ function detectStatus(sectionId: SectionId, film: any): SectionStatus {
       return scenes.every(
         (s: any) => Array.isArray(shotsBySceneId[s.id]) && shotsBySceneId[s.id].length > 0
       )
-        ? "done"
-        : "missing";
-    }
-    case "grid-build": {
-      const scenes = film.script?.scenes;
-      if (!scenes || scenes.length === 0) return "missing";
-      // r7.32-fix: SceneGrid field is `gridImageDataUrl` (base64 PNG inline),
-      // NOT `image`. Old code checked `!!g.image` → always undefined → banner
-      // stuck showing "Pipeline dở dang" even after Jason fully gen storyboard.
-      return scenes.every((s: any) => {
-        const grids = s.grids ?? [];
-        return grids.length > 0 && grids.every((g: any) => !!g.gridImageDataUrl);
-      })
         ? "done"
         : "missing";
     }

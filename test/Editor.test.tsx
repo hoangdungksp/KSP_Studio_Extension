@@ -108,9 +108,9 @@ describe("Editor sidebar v0.9.0 — runtime smoke tests", () => {
     const html = container.innerHTML;
     expect(html).toContain("ksp-sidebar-v09");
     // v0.9.1 r10: separators "━━━ PROJECT/ASSETS/PIPELINE ━━━" removed.
-    // Verify Project Setting renders. Film mode uses CastSectionV09 (different class).
+    // Verify Project Setting renders. r8.1: Film mode has NO Cast section (AI character bible).
     expect(html).toContain("ksp-project-setting");
-    expect(html).toMatch(/ksp-cast-photos|ksp-section.*cast/);
+    expect(html).not.toContain("ksp-cast-photos");
   });
 
   it("renders v0.8.x legacy project without crashing (migration path)", () => {

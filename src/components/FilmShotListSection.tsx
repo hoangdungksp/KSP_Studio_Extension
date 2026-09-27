@@ -62,6 +62,8 @@ const RHYTHM_ROLE_OPTIONS: { value: RhythmRole; labelVi: string }[] = [
 // Was: local 11-value array duplicated with FilmFrameEditModal + filmShotListGeneration.
 import { CAMERA_MOVEMENT_OPTIONS } from "../types/cameraMovement";
 import { AutoChainRetryBanner } from "./AutoChainRetryBanner";
+import { BeatPromptPanel } from "./BeatPromptPanel";
+import { CharacterBibleBlock } from "./CharacterBibleBlock";
 
 function formatSceneDuration(secs: number): string {
   if (secs >= 60) {
@@ -204,6 +206,9 @@ export function FilmShotListSection() {
         sectionLabel="Phân tích Scenes / Shot List"
       />
 
+      {/* r8.1: AI character bible (replaces Cast section in Film mode) */}
+      <CharacterBibleBlock characters={film.characters} />
+
       {!script && (
         <div className="ksp-shotlist-film-empty">
           <p>
@@ -221,6 +226,8 @@ export function FilmShotListSection() {
             key={scene.id}
             scene={scene}
             shots={getShotsForScene(project, scene.id)}
+            characters={film.characters}
+            setting={setting}
             onAIGenerate={async () => {
               if (!setting) {
                 showToast("Project setting missing", "error");
@@ -343,7 +350,7 @@ export function FilmShotListSection() {
       {script && (
         <div className="ksp-shotlist-film-footer">
           <span className="ksp-shotlist-film-footer-text">
-            ⓘ Shot list là TEXT planning. Sau khi review/edit xong → section <strong>STORYBOARD</strong> sẽ render hình ảnh từng shot.
+            ⓘ Shot list là TEXT planning. Review/edit xong → mở từng scene, dùng panel <strong>🎬 BEATS → VIDEO PROMPT</strong> để tạo prompt video.
           </span>
         </div>
       )}
@@ -358,6 +365,9 @@ export function FilmShotListSection() {
 interface SceneShotListCardProps {
   scene: FilmSceneScript;
   shots: FilmShot[];
+  /** r8.0: for per-beat video prompts */
+  characters: import("../types/film").FilmCharacter[];
+  setting?: import("../types/project").ProjectSettingV2;
   onAIGenerate: () => Promise<void>;
   onAddShot: () => void;
   onUpdateShot: (shotId: string, updates: Partial<FilmShot>) => void;
@@ -368,6 +378,8 @@ interface SceneShotListCardProps {
 function SceneShotListCard({
   scene,
   shots,
+  characters,
+  setting,
   onAIGenerate,
   onAddShot,
   onUpdateShot,
@@ -527,6 +539,11 @@ function SceneShotListCard({
                   {isGenerating ? "⏳ Đang sinh..." : "✨ Sinh lại"}
                 </button>
               </div>
+
+              {/* r8.0: per-beat video prompts (Omni Flash / Seedance 2.5 / Grok) */}
+              {setting && (
+                <BeatPromptPanel scene={scene} shots={shots} characters={characters} setting={setting} />
+              )}
             </>
           )}
         </div>

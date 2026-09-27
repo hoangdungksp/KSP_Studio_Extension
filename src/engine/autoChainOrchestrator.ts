@@ -51,10 +51,17 @@ export type SectionId =
   | "script-stage-2"     // Script Stage 2: Beats
   | "script-stage-3"     // Script Stage 3: Twists
   | "script-stage-4"     // Script Stage 4: Scenes (intermediate)
+  | "characters"         // r8.1: AI character bible (replaces manual Cast in Film mode)
   | "script-stage-5"     // Script Stage 5: Dialogues
   | "analyze-scenes"       // All scenes Analyze Scenes loop (per-scene moments + physical lock + color script)
-  | "shot-list"          // All scenes Shot List generation
-  | "grid-build";        // All scenes Grid template build
+  | "shot-list";         // All scenes Shot List generation (r8.0: last stage — storyboard grid-build removed)
+
+/** Canonical section order. r8.0: pipeline ends at Shot List. */
+export const AUTO_CHAIN_SECTION_ORDER: readonly SectionId[] = [
+  "script-stage-1", "script-stage-2", "script-stage-3", "script-stage-4", "characters", "script-stage-5",
+  "analyze-scenes", "shot-list",
+];
+
 
 export type JobStatus = "idle" | "queued" | "generating" | "done" | "stale" | "error";
 
@@ -83,11 +90,7 @@ export interface AutoChainState {
  */
 export function createInitialAutoChainState(): AutoChainState {
   const sections: Partial<Record<SectionId, SectionState>> = {};
-  const allSectionIds: SectionId[] = [
-    "script-stage-1", "script-stage-2", "script-stage-3", "script-stage-4", "script-stage-5",
-    "analyze-scenes", "shot-list", "grid-build",
-  ];
-  for (const id of allSectionIds) {
+  for (const id of AUTO_CHAIN_SECTION_ORDER) {
     sections[id] = { sectionId: id, status: "idle" };
   }
   return {
@@ -334,10 +337,7 @@ export class AutoChainOrchestrator {
     this.abortRequested = false;
     // Don't reset state — preserve completed sections.
     // Reset target + downstream sections to queued so retry continues clean.
-    const ORDER: SectionId[] = [
-      "script-stage-1", "script-stage-2", "script-stage-3", "script-stage-4", "script-stage-5",
-      "analyze-scenes", "shot-list", "grid-build",
-    ];
+    const ORDER = AUTO_CHAIN_SECTION_ORDER;
     const startIdx = ORDER.indexOf(sectionId);
     if (startIdx < 0) throw new Error(`Unknown section: ${sectionId}`);
     for (let i = startIdx; i < ORDER.length; i++) {
@@ -363,10 +363,10 @@ export class AutoChainOrchestrator {
         ["script-stage-2", () => this.runScriptStage2Twists(direction)],
         ["script-stage-3", () => this.runScriptStage3Beats(direction)],
         ["script-stage-4", () => this.runScriptStage4(direction)],
+        ["characters", () => this.runCharacterBible()],
         ["script-stage-5", () => this.runScriptStage5()],
         ["analyze-scenes", () => this.runAnalyzeScenesAllScenes()],
         ["shot-list", () => this.runShotListAllScenes()],
-        ["grid-build", () => this.runGridBuildAllScenes()],
       ];
       const startIdx = runners.findIndex(([id]) => id === startSection);
       if (startIdx < 0) throw new Error(`Unknown start section: ${startSection}`);
@@ -403,7 +403,7 @@ export class AutoChainOrchestrator {
 
       const durationSec = ((this.state.finishedAt - (this.state.startedAt ?? 0)) / 1000).toFixed(1);
       this.callbacks.showToast(
-        `Auto-chain hoàn thành (${durationSec}s, ${this.state.totalAiCalls} AI calls). Storyboard prompts ready.`,
+        `Auto-chain hoàn thành (${durationSec}s, ${this.state.totalAiCalls} AI calls). Shot list sẵn sàng — mở "🎬 Beats & video prompt" ở từng scene để tạo prompt.`,
         "success"
       );
     } catch (err) {
@@ -689,6 +689,42 @@ export class AutoChainOrchestrator {
     }
   }
 
+  /**
+   * r8.1: Character bible — AI derives on-screen characters + fixed English
+   * appearance text from idea + Stage 4 scenes. Runs before Stage 5 so
+   * dialogue, shot list and video prompts all use the same names.
+   * Skipped when the project already has characters (legacy Cast data).
+   */
+  private async runCharacterBible(): Promise<void> {
+    this.setStatus("characters", "generating"); this.setCostTrackerStage("Characters");
+    try {
+      const project = this.callbacks.getProject();
+      const film = (project as PromptProject & ProjectV09Extensions).filmV093;
+      const setting = (project as PromptProject & ProjectV09Extensions).settingV2;
+      if (!film || !setting) throw new Error("Missing filmV093 or settingV2");
+      if ((film.characters ?? []).some((c) => c.name && c.description)) {
+        this.setStatus("characters", "done");
+        return;
+      }
+      const { generateCharacterBible } = await import("./characterBible");
+      const characters = await generateCharacterBible({
+        idea: project.idea?.raw ?? "",
+        setting,
+        structure: film.scriptStructure,
+        scenes: film.scriptIntermediateScenes ?? [],
+        provider: getProviderFromSetting(setting, "scriptWriter"),
+      });
+      this.state.totalAiCalls++;
+      const { setCharacters } = await import("../store/film_actions");
+      this.callbacks.updateProject((p) => setCharacters(p, characters));
+      this.setStatus("characters", "done");
+      await this.sleep(this.getDelayMs());
+    } catch (err) {
+      this.setStatus("characters", "error", { errorMessage: (err as Error).message });
+      throw err;
+    }
+  }
+
   private async runScriptStage5(): Promise<void> {
     this.setStatus("script-stage-5", "generating"); this.setCostTrackerStage("Stage 5 — Dialogues");
     try {
@@ -898,46 +934,13 @@ export class AutoChainOrchestrator {
       }
 
       this.setStatus("shot-list", "done", { subProgress: undefined });
-      await this.sleep(this.getDelayMs());
+      this.setCostTrackerStage(undefined); // r8.0: shot-list is the last stage — clear live cost label
     } catch (err) {
       this.setStatus("shot-list", "error", { errorMessage: (err as Error).message });
       throw err;
     }
   }
 
-  private async runGridBuildAllScenes(): Promise<void> {
-    this.setStatus("grid-build", "generating"); this.setCostTrackerStage("Building storyboard grids");
-    try {
-      const project = this.callbacks.getProject();
-      const film = (project as PromptProject & ProjectV09Extensions).filmV093;
-      const setting = (project as PromptProject & ProjectV09Extensions).settingV2;
-      if (!film || !setting) throw new Error("Missing filmV093 or settingV2");
-      const scenes = film.script?.scenes ?? [];
-
-      // Grid build is non-AI (deterministic packing). Run for each scene via existing action.
-      const { ensureSceneGrids } = await import("../store/film_actions");
-
-      for (let i = 0; i < scenes.length; i++) {
-        if (this.abortRequested) return;
-        const scene = scenes[i];
-        this.setStatus("grid-build", "generating", {
-          subProgress: { current: i + 1, total: scenes.length, currentSceneTitle: scene.titleEn || scene.titleVi || `Scene ${scene.order}` },
-        });
-
-        try {
-          this.callbacks.updateProject((p) => ensureSceneGrids(p, scene.id));
-        } catch (perSceneErr) {
-          console.warn(`[AutoChain] Grid build scene ${scene.id} failed:`, perSceneErr);
-        }
-      }
-
-      this.setStatus("grid-build", "done", { subProgress: undefined });
-      this.setCostTrackerStage(undefined); // r7.23: clear live label on full pipeline completion
-    } catch (err) {
-      this.setStatus("grid-build", "error", { errorMessage: (err as Error).message });
-      throw err;
-    }
-  }
 }
 
 // ============================================================================

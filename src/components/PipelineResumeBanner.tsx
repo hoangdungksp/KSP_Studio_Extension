@@ -18,7 +18,7 @@
 
 import { useState } from "react";
 import { useAppStore } from "../store/useAppStore";
-import { getSectionLabel } from "../engine/pipelineProgress";
+import { getSectionLabel, isKnownSectionId } from "../engine/pipelineProgress";
 import type { AutoChainAbortRecord } from "../types/project";
 
 export function PipelineResumeBanner() {
@@ -39,6 +39,7 @@ export function PipelineResumeBanner() {
   if (abort.dismissedByUser) return null;
   if (autoChainState.isRunning) return null;
   if (!narrativeDirection) return null; // need direction to retry
+  if (!isKnownSectionId(abort.abortedAtSection)) return null; // r8.0: legacy "grid-build" abort — stage removed
 
   async function handleResume() {
     if (!abort || !narrativeDirection) return;

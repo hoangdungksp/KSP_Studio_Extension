@@ -86,17 +86,10 @@ import {
   buildAnimationPrompt,
   charCountColor,
 } from "../src/engine/filmShotPromptBuilder";
-import {
-  exportFilmBundle,
-  previewBundleTree,
-} from "../src/engine/filmBundleExporter";
 
 import { CastFilmSection } from "../src/components/CastFilmSection";
 import { FilmIdeaScriptSection } from "../src/components/FilmIdeaScriptSection";
 import { FilmStoryboardSection } from "../src/components/FilmStoryboardSection";
-import { FilmVoiceSection } from "../src/components/FilmVoiceSection";
-import { FilmMusicSfxSection } from "../src/components/FilmMusicSfxSection";
-import { FilmBundleExportSection } from "../src/components/FilmBundleExportSection";
 
 // Base Film project fixture
 const baseFilmProject: any = {
@@ -825,188 +818,14 @@ describe("Film v0.9.3 schema + actions", () => {
     expect(SFX_PROVIDER_LABELS["suno-sfx"].name).toBe("Suno SFX");
   });
 
-  // -- previewBundleTree tests --
-  it("previewBundleTree contains all 5 top-level folders + counts", () => {
-    let proj = { ...baseFilmProject, filmV093: addCharacter(baseFilmProject, "protagonist").filmV093 };
-    proj.name = "MyFilm";
-    proj.settingV2 = { ...proj.settingV2, name: "My Test Film" };
-    const tree = previewBundleTree(proj);
-    expect(tree).toContain("cast/");
-    expect(tree).toContain("shots/");
-    expect(tree).toContain("voice/");
-    expect(tree).toContain("music/");
-    expect(tree).toContain("sfx/");
-    expect(tree).toContain("my-test-film-bundle.zip");
-    expect(tree).toContain("1 characters"); // we added 1 char, no refs
-  });
 
-  it("previewBundleTree shows no_dialog mode for voice folder", () => {
-    const proj = { ...baseFilmProject };
-    // baseFilmProject has dialog: "no_dialog"
-    const tree = previewBundleTree(proj);
-    expect(tree).toContain("voice/                  (empty — no_dialog mode)");
-  });
 
-  // -- exportFilmBundle tests --
-  it("exportFilmBundle returns a Blob + filename slug + stats", async () => {
-    const proj = { ...baseFilmProject, filmV093: addCharacter(baseFilmProject, "protagonist").filmV093 };
-    proj.settingV2 = { ...proj.settingV2, name: "Robot Awakens" };
 
-    const result = await exportFilmBundle(proj);
-    expect(result.blob).toBeInstanceOf(Blob);
-    expect(result.filename).toBe("robot-awakens-bundle.zip");
-    expect(result.stats.characterCount).toBe(1);
-    expect(result.stats.estimatedSizeKb).toBeGreaterThan(0);
-  });
 
-  it("exportFilmBundle includes script.txt when script exists", async () => {
-    const minimalScript: any = {
-      titleEn: "Robot Story",
-      titleVi: "Câu chuyện robot",
-      logline: "A robot discovers consciousness",
-      synopsisEn: "A robot named R1 wakes up in a junkyard at dawn.",
-      scenes: [
-        {
-          id: "s1",
-          order: 1,
-          titleEn: "Junkyard dawn",
-          settings: "EXT. JUNKYARD — DAWN",
-          durationSeconds: 60,
-          act: "setup",
-          actionLinesEn: "R1 stirs amid scrap metal.",
-          dialog: [],
-          sfx: ["metal creaking", "wind"],
-          musicBrief: "Slow ambient drone, building hope",
-        },
-      ],
-      versions: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    const proj = { ...baseFilmProject, filmV093: setScript(baseFilmProject, minimalScript).filmV093 };
-    const { blob } = await exportFilmBundle(proj);
-    expect(blob.size).toBeGreaterThan(500); // README + script.txt + music briefs + sfx
-  });
 
-  it("exportFilmBundle dialog has_dialog mode populates voice/ folder", async () => {
-    const scriptWithDialog: any = {
-      titleEn: "Dialog Test",
-      titleVi: "Test",
-      logline: "x",
-      synopsisEn: "x",
-      scenes: [
-        {
-          id: "s1",
-          order: 1,
-          titleEn: "S1",
-          settings: "INT.",
-          durationSeconds: 30,
-          act: "setup",
-          actionLinesEn: "x",
-          dialog: [
-            { characterId: "c1", characterName: "Alice", lineEn: "Hello world." },
-            { characterId: "c1", characterName: "Alice", lineEn: "How are you?" },
-            { characterId: "c2", characterName: "Bob", lineEn: "I'm fine." },
-          ],
-          sfx: [],
-          musicBrief: "",
-        },
-      ],
-      versions: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    const proj = {
-      ...baseFilmProject,
-      settingV2: { ...baseFilmProject.settingV2, dialog: "has_dialog" },
-      filmV093: setScript(baseFilmProject, scriptWithDialog).filmV093,
-    };
-    const { stats } = await exportFilmBundle(proj);
-    expect(stats.voiceLineCount).toBe(3); // 2 Alice + 1 Bob
-  });
 
-  it("FilmVoiceSection mounts (no_dialog mode)", () => {
-    useAppStore.setState({ currentProject: baseFilmProject });
-    const { container } = render(<FilmVoiceSection />);
-    expect(container.innerHTML).toContain("VOICE");
-    expect(container.innerHTML).toContain("Không thoại");
-  });
 
-  it("FilmVoiceSection switches to per-char list when has_dialog + script present", () => {
-    const scriptWithDialog: any = {
-      titleEn: "T",
-      titleVi: "T",
-      logline: "x",
-      synopsisEn: "x",
-      scenes: [
-        {
-          id: "s1",
-          order: 1,
-          titleEn: "S1",
-          settings: "INT.",
-          durationSeconds: 30,
-          act: "setup",
-          actionLinesEn: "",
-          dialog: [
-            { characterId: "c1", characterName: "Alice", lineEn: "Test line." },
-          ],
-          sfx: [],
-          musicBrief: "",
-        },
-      ],
-      versions: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    const proj = {
-      ...baseFilmProject,
-      settingV2: { ...baseFilmProject.settingV2, dialog: "has_dialog" },
-      filmV093: setScript(baseFilmProject, scriptWithDialog).filmV093,
-    };
-    useAppStore.setState({ currentProject: proj });
-    const { container } = render(<FilmVoiceSection />);
-    expect(container.innerHTML).toContain("Alice");
-    expect(container.innerHTML).toContain("1 lines");
-  });
 
-  it("FilmMusicSfxSection mounts with script + provider toggle", () => {
-    const minimalScript: any = {
-      titleEn: "T",
-      titleVi: "T",
-      logline: "x",
-      synopsisEn: "x",
-      scenes: [
-        {
-          id: "s1",
-          order: 1,
-          titleEn: "S1",
-          settings: "EXT.",
-          durationSeconds: 30,
-          act: "setup",
-          actionLinesEn: "",
-          dialog: [],
-          sfx: ["wind"],
-          musicBrief: "Test brief",
-        },
-      ],
-      versions: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    const proj = { ...baseFilmProject, filmV093: setScript(baseFilmProject, minimalScript).filmV093 };
-    useAppStore.setState({ currentProject: proj });
-    const { container } = render(<FilmMusicSfxSection />);
-    expect(container.innerHTML).toContain("MUSIC");
-    expect(container.innerHTML).toContain("Freesound");
-  });
-
-  it("FilmBundleExportSection mounts with tree preview", () => {
-    useAppStore.setState({ currentProject: baseFilmProject });
-    const { container } = render(<FilmBundleExportSection />);
-    expect(container.innerHTML).toContain("BUNDLE");
-    expect(container.innerHTML).toContain("cast/");
-    expect(container.innerHTML).toContain("shots/");
-  });
 
   // ============================================================================
   // r7 — Multi-stage Script Wizard tests (v0.9.3 FINAL)
@@ -5615,7 +5434,7 @@ describe("Sprint 1.0 r7 — Sprint G1ab", () => {
     expect(result.firstMissing).toBe("script-stage-4");
   });
 
-  it("r7.29 Feature 1B — derivePipelineProgress detects complete pipeline (all 8 stages done)", async () => {
+  it("r7.29 Feature 1B — derivePipelineProgress detects complete pipeline (all 8 stages done, r8.0 ends at shot-list, r8.1 + characters)", async () => {
     const { derivePipelineProgress } = await import("../src/engine/pipelineProgress");
     const scenes = [
       {
@@ -5626,6 +5445,7 @@ describe("Sprint 1.0 r7 — Sprint G1ab", () => {
     ];
     const project = {
       filmV093: {
+        characters: [{ name: "<name>", description: "<appearance>" }],
         scriptStructure: { framework: "three-act" },
         scriptBeats: [{ order: 1 }],
         scriptTwists: [{ description: "X" }],
@@ -5637,62 +5457,9 @@ describe("Sprint 1.0 r7 — Sprint G1ab", () => {
     const result = derivePipelineProgress(project);
     expect(result.isComplete).toBe(true);
     expect(result.firstMissing).toBeNull();
-    expect(result.lastCompleted).toBe("grid-build");
+    expect(result.lastCompleted).toBe("shot-list");
   });
 
-  it("r7.32-fix — grid-build detector reads SceneGrid.gridImageDataUrl field (NOT 'image') — banner stuck bug regression", async () => {
-    // Bug: r7.29 derivePipelineProgress used `!!g.image` but real schema field is
-    // SceneGrid.gridImageDataUrl. → Always undefined → grid-build status forever "missing"
-    // → "Pipeline dở dang" banner stuck showing even after user fully gen storyboard.
-    const { derivePipelineProgress } = await import("../src/engine/pipelineProgress");
-
-    // Case 1: grids have gridImageDataUrl populated → should detect as "done"
-    const projectDone = {
-      filmV093: {
-        scriptStructure: { framework: "three-act" },
-        scriptBeats: [{ order: 1 }],
-        scriptTwistsLocked: true,
-        scriptIntermediateScenes: [{ order: 1 }],
-        script: { scenes: [{ id: "sc1", beats: [{ id: "b1" }], grids: [{ gridImageDataUrl: "data:..." }] }] },
-        shotsBySceneId: { sc1: [{ id: "sh1" }] },
-      },
-    } as any;
-    const resultDone = derivePipelineProgress(projectDone);
-    const gridStatus = resultDone.sections.find((s) => s.id === "grid-build")?.status;
-    expect(gridStatus).toBe("done");
-    expect(resultDone.isComplete).toBe(true);
-
-    // Case 2: legacy/incorrect field `image` → should STILL detect as "missing"
-    // (proves we read gridImageDataUrl specifically, not just any truthy property)
-    const projectLegacyField = {
-      filmV093: {
-        scriptStructure: { framework: "three-act" },
-        scriptBeats: [{ order: 1 }],
-        scriptTwistsLocked: true,
-        scriptIntermediateScenes: [{ order: 1 }],
-        script: { scenes: [{ id: "sc1", beats: [{ id: "b1" }], grids: [{ image: "data:..." }] }] },
-        shotsBySceneId: { sc1: [{ id: "sh1" }] },
-      },
-    } as any;
-    const resultLegacy = derivePipelineProgress(projectLegacyField);
-    const gridStatusLegacy = resultLegacy.sections.find((s) => s.id === "grid-build")?.status;
-    expect(gridStatusLegacy).toBe("missing");
-
-    // Case 3: grid exists but gridImageDataUrl empty string → still "missing"
-    const projectEmptyDataUrl = {
-      filmV093: {
-        scriptStructure: { framework: "three-act" },
-        scriptBeats: [{ order: 1 }],
-        scriptTwistsLocked: true,
-        scriptIntermediateScenes: [{ order: 1 }],
-        script: { scenes: [{ id: "sc1", beats: [{ id: "b1" }], grids: [{ gridImageDataUrl: "" }] }] },
-        shotsBySceneId: { sc1: [{ id: "sh1" }] },
-      },
-    } as any;
-    const resultEmpty = derivePipelineProgress(projectEmptyDataUrl);
-    const gridStatusEmpty = resultEmpty.sections.find((s) => s.id === "grid-build")?.status;
-    expect(gridStatusEmpty).toBe("missing");
-  });
 
   it("r7.33/r7.35 — PreviewFlowModal: 'Bỏ qua' header button removed, ESC + Thoát button exit via onCancel", async () => {
     const fs = await import("fs");
@@ -5996,6 +5763,7 @@ describe("Sprint 1.0 r7 — Sprint G1ab", () => {
     const { derivePipelineProgress } = await import("../src/engine/pipelineProgress");
     const project = {
       filmV093: {
+        characters: [{ name: "<name>", description: "<appearance>" }],
         scriptStructure: { framework: "three-act" },
         scriptBeats: [{ order: 1 }],
         scriptTwistsLocked: true,
@@ -6174,8 +5942,8 @@ describe("Sprint 1.0 r7 — Sprint G1ab", () => {
     expect(shotList).toContain('import { AutoChainRetryBanner }');
     expect(shotList).toContain("analyze-scenes");
     expect(shotList).toContain("shot-list");
-    expect(storyboard).toContain('import { AutoChainRetryBanner }');
-    expect(storyboard).toContain('"grid-build"');
+    // r8.0: Storyboard hidden + grid-build stage removed — no retry banner there.
+    expect(storyboard).not.toContain('"grid-build"');
   });
 
   it("r7.29 Feature 2A — PreviewFlowModal regen button calls loadOptionsForStep with skipCache=true", async () => {

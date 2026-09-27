@@ -238,10 +238,7 @@ export function FilmIdeaScriptSection() {
       showToast("Project setting chưa đầy đủ", "info");
       return;
     }
-    if (film.characters.length === 0) {
-      showToast("Hãy add ít nhất 1 character vào Cast trước", "info");
-      return;
-    }
+    // r8.1: no Cast step in Film mode — characters are derived by AI (character bible).
 
     // r7.33: Confirm dialog — user must acknowledge they'll need to complete all 6 steps
     // (no "Bỏ qua" button anymore). Skip confirm if user already has cached steps
@@ -1303,10 +1300,6 @@ function ScriptStepperWizard({
   function guardInputs(): boolean {
     if (!idea.trim()) {
       onShowToast("Hãy nhập Idea trước khi chạy wizard", "info");
-      return false;
-    }
-    if (film.characters.length === 0) {
-      onShowToast("Hãy add ít nhất 1 character vào Cast trước", "info");
       return false;
     }
     return true;
@@ -2561,10 +2554,24 @@ function ActiveStage5({
     onSetGenerating(true);
     try {
       const acceptedTwists = (film.scriptTwists ?? []).filter((t) => t.accepted === true);
+      // r8.1: manual path — build the character bible first if the project has none.
+      let characters = film.characters;
+      if (!characters.some((c) => c.name && c.description)) {
+        const { generateCharacterBible } = await import("../engine/characterBible");
+        characters = await generateCharacterBible({
+          idea,
+          setting,
+          structure: film.scriptStructure,
+          scenes: film.scriptIntermediateScenes,
+          provider,
+        });
+        const { setCharacters } = await import("../store/film_actions");
+        onUpdateProject((p) => setCharacters(p, characters));
+      }
       const newScript = await runStage5FromStages({
         idea,
         setting,
-        characters: film.characters,
+        characters,
         structure: film.scriptStructure,
         beats: film.scriptBeats,
         acceptedTwists,
@@ -2572,7 +2579,7 @@ function ActiveStage5({
         provider,
       });
       onUpdateProject((p) => setScript(p, newScript));
-      onShowToast(`Đã viết script ${newScript.scenes.length} cảnh — chuyển sang Storyboard`, "success");
+      onShowToast(`Đã viết script ${newScript.scenes.length} cảnh — tiếp theo là Shot List`, "success");
 
       // Sprint 1.0 r7 (Q-A): Auto-detect beats + physical consistency lock for all scenes.
       // Runs in background — user can proceed without waiting. Toast notifies completion.
